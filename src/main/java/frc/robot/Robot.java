@@ -25,7 +25,6 @@ public class Robot extends TimedRobot {
   public static Drivebase m_drivebase;
   public static OI m_oi;
   ADXRS450_Gyro m_gyro = new ADXRS450_Gyro();
-  double counter = 0;
 
   Command m_autonomousCommand;
   SendableChooser<Command> m_chooser = new SendableChooser<>();
