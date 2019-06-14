@@ -23,7 +23,7 @@ public class OI {
   public final Joystick DRIVE_JOY = new Joystick(0);
   // public final XboxController DRIVE_JOY = new
   // XboxController(RobotMap.DRIVE_JOYSTICK.value);
-  public final XboxController CONTROL_JOY = new XboxController(RobotMap.CONTROL_JOYSTICK.value);
+  public final Joystick CONTROL_JOY = new Joystick(1);
 
   // get Joystick axis values
   // public double getDriveJoyXL() {
@@ -54,6 +54,10 @@ public class OI {
     return -DRIVE_JOY.getY();
   }
 
+  public double getDriveJoyMag() {
+    return DRIVE_JOY.getMagnitude();
+  }
+
   public double getControlJoyXL() {
     double raw = CONTROL_JOY.getRawAxis(0);
     return Math.abs(raw) < JOY_DEADZONE ? 0.0 : raw;
@@ -67,6 +71,10 @@ public class OI {
   public double getControlJoyXR() {
     double raw = CONTROL_JOY.getRawAxis(4);
     return Math.abs(raw) < JOY_DEADZONE ? 0.0 : raw;
+  }
+
+  public double getControlJoyY() {
+    return -CONTROL_JOY.getY();
   }
 
   public double getControlJoyYR() {

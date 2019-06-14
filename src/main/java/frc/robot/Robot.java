@@ -25,6 +25,7 @@ public class Robot extends TimedRobot {
   public static Drivebase m_drivebase;
   public static OI m_oi;
   ADXRS450_Gyro m_gyro = new ADXRS450_Gyro();
+  double previous_error;
 
   Command m_autonomousCommand;
   SendableChooser<Command> m_chooser = new SendableChooser<>();
@@ -89,35 +90,46 @@ public class Robot extends TimedRobot {
       desired = 90;
     }
 
-    double desiredCircleAngle;
+    double desiredCA;
     SmartDashboard.putNumber("Desired", desired);
     if (m_oi.getDriveJoyX() >= 0) {
       if (m_oi.getDriveJoyY() >= 0) {
-        desiredCircleAngle = desired;
+        desiredCA = desired;
       } else {
-        desiredCircleAngle = desired + 180;
+        desiredCA = desired + 180;
       }
 
     } else {
       if (m_oi.getDriveJoyY() <= 0) {
-        desiredCircleAngle = desired + 180;
+        desiredCA = desired + 180;
       } else {
-        desiredCircleAngle = desired + 360;
+        desiredCA = desired + 360;
       }
     }
 
-    int neg_cor = m_gyro.getAngle() < 0 ? 1 : 0;
-    double gyroCA = m_gyro.getAngle() % 360 + neg_cor * 360;
-    double quad = Math.ceil(gyroCA / 90);
+    int negCorrector = m_gyro.getAngle() < 0 ? 1 : 0;
+    double gyroCA = m_gyro.getAngle() % 360 + negCorrector * 360;
 
-    double error = desiredCircleAngle - gyroCA;
-    double kP = 0.001;
-    m_drivebase.arcadeDrive(0, kP*error);// kP * error);
+    double direction = desiredCA < gyroCA ? 1 : -1;
+    if (Math.abs(desiredCA - gyroCA) > Math.abs(desiredCA + 360 * direction - gyroCA)) {
+      desiredCA += 360 * direction;
+    }
 
-    SmartDashboard.putNumber("Desired CA", desiredCircleAngle);
-    SmartDashboard.putNumber("Gyro Angle", Math.round(m_gyro.getAngle()));
-    SmartDashboard.putNumber("CA", gyroCA);
-    SmartDashboard.putNumber("Error", error);
+    double error = desiredCA - gyroCA;
+    double kP = 0.004; // .038;
+    double deriv = (error - this.previous_error) / .02;
+    double kD = .001;
+    previous_error = error;
+
+    m_drivebase.arcadeDrive(m_oi.getControlJoyY(), kP * error + kD * deriv + .225 * Math.signum(error));
+
+    SmartDashboard.putNumber("Mag", m_oi.getDriveJoyMag());
+    SmartDashboard.putNumber("Desired CA", desiredCA);
+    SmartDashboard.putNumber("Current CA", gyroCA);
+
+    if (m_oi.DRIVE_JOY.getRawButtonPressed(3)) {
+      m_gyro.reset();
+    }
   }
 
   public static void initTalon(TalonSRX motor) {
