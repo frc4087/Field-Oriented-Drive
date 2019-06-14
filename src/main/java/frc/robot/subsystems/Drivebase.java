@@ -60,8 +60,5 @@ public class Drivebase extends Subsystem {
 
   @Override
   protected void initDefaultCommand() {
-
-    setDefaultCommand(new ArcadeDrive());
-
   }
 }
