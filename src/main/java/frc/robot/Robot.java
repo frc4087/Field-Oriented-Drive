@@ -15,18 +15,20 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.ADXRS450_Gyro;
 import frc.robot.commands.ArcadeDrive;
 import frc.robot.subsystems.Drivebase;
+import edu.wpi.first.wpilibj.SPI;
+import edu.wpi.first.wpilibj.SerialPort;
 
 import com.ctre.phoenix.motorcontrol.LimitSwitchNormal;
 import com.ctre.phoenix.motorcontrol.LimitSwitchSource;
 import com.ctre.phoenix.motorcontrol.NeutralMode;
 import com.ctre.phoenix.motorcontrol.can.TalonSRX;
+import com.kauailabs.navx.frc.*;
 
 public class Robot extends TimedRobot {
   public static Drivebase m_drivebase;
   public static OI m_oi;
-  ADXRS450_Gyro m_gyro = new ADXRS450_Gyro();
   double previous_error;
-
+  AHRS m_gyro = new AHRS(SPI.Port.kMXP);
   Command m_autonomousCommand;
   SendableChooser<Command> m_chooser = new SendableChooser<>();
 
@@ -91,7 +93,6 @@ public class Robot extends TimedRobot {
     }
 
     double desiredCA;
-    SmartDashboard.putNumber("Desired", desired);
     if (m_oi.getDriveJoyX() >= 0) {
       if (m_oi.getDriveJoyY() >= 0) {
         desiredCA = desired;
@@ -107,8 +108,8 @@ public class Robot extends TimedRobot {
       }
     }
 
-    int negCorrector = m_gyro.getAngle() < 0 ? 1 : 0;
-    double gyroCA = m_gyro.getAngle() % 360 + negCorrector * 360;
+    int negCorrector = m_gyro.getYaw() < 0 ? 1 : 0;
+    double gyroCA = m_gyro.getYaw() % 360 + negCorrector * 360;
 
     double direction = desiredCA < gyroCA ? 1 : -1;
     if (Math.abs(desiredCA - gyroCA) > Math.abs(desiredCA + 360 * direction - gyroCA)) {
@@ -118,12 +119,11 @@ public class Robot extends TimedRobot {
     double error = desiredCA - gyroCA;
     double kP = 0.004; // .038;
     double deriv = (error - this.previous_error) / .02;
-    double kD = .001;
+    double kD = .002;
     previous_error = error;
 
-    m_drivebase.arcadeDrive(m_oi.getControlJoyY(), kP * error + kD * deriv + .225 * Math.signum(error));
+    m_drivebase.arcadeDrive(m_oi.getControlJoyY(), m_oi.getDriveJoyMag()*(kP * error + kD * deriv + .25 * Math.signum(error)));
 
-    SmartDashboard.putNumber("Mag", m_oi.getDriveJoyMag());
     SmartDashboard.putNumber("Desired CA", desiredCA);
     SmartDashboard.putNumber("Current CA", gyroCA);
 
