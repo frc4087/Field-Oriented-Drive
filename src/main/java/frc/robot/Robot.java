@@ -13,8 +13,11 @@ import edu.wpi.first.wpilibj.command.Scheduler;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.ADXRS450_Gyro;
+import edu.wpi.first.wpilibj.Compressor;
+import edu.wpi.first.wpilibj.DoubleSolenoid;
 import frc.robot.commands.ArcadeDrive;
 import frc.robot.subsystems.Drivebase;
+import frc.robot.subsystems.ToggledSolenoid;
 import edu.wpi.first.wpilibj.SPI;
 import edu.wpi.first.wpilibj.SerialPort;
 
@@ -28,15 +31,26 @@ public class Robot extends TimedRobot {
   public static Drivebase m_drivebase;
   public static OI m_oi;
   double previous_error;
+  boolean shiftState = false; 
+  String x;
   AHRS m_gyro = new AHRS(SPI.Port.kMXP);
   Command m_autonomousCommand;
   SendableChooser<Command> m_chooser = new SendableChooser<>();
+
+  // Pneumatics
+  Compressor c = new Compressor(0);
+  public static ToggledSolenoid winchPiston = new ToggledSolenoid(2, 5);
+  public static ToggledSolenoid shifters = new ToggledSolenoid(3, 4);
+  public static DoubleSolenoid hatchIntake = new DoubleSolenoid(6, 7);
+  public static ToggledSolenoid intakeActuator = new ToggledSolenoid(0, 1);
+
+
 
   @Override
   public void robotInit() {
     m_oi = new OI();
     m_drivebase = new Drivebase();
-    m_chooser.setDefaultOption("Default Auto", new ArcadeDrive(m_oi.getDriveJoyY(), m_oi.getDriveJoyX()));
+    m_chooser.setDefaultOption("Default Auto", new ArcadeDrive(m_oi.getDriveJoyYL(), m_oi.getDriveJoyXR()));
     // chooser.addOption("My Auto", new MyAutoCommand());
     SmartDashboard.putData("Auto mode", m_chooser);
   }
@@ -85,29 +99,40 @@ public class Robot extends TimedRobot {
   }
 
   void matchPeriodic() {
+    //shifters
+    if (m_oi.getDriveJoyBLPressed()) {
+      shifters.togglePiston();
+      shiftState = !shiftState;
+    }
+    SmartDashboard.putString("Gear", shiftState ? "Low" : "High");
+
+    //field-Oriented Drive
+    
+    
     double desired;
-    if (m_oi.getDriveJoyY() != 0) {
-      desired = Math.toDegrees(Math.atan(m_oi.getDriveJoyX() / m_oi.getDriveJoyY()));
+    if (m_oi.getDriveJoyYR() != 0) {
+      desired = Math.toDegrees(Math.atan(m_oi.getDriveJoyXR() / m_oi.getDriveJoyYR()));
     } else {
       desired = 90;
     }
 
     double desiredCA;
-    if (m_oi.getDriveJoyX() >= 0) {
-      if (m_oi.getDriveJoyY() >= 0) {
+    if (m_oi.getDriveJoyXR() >= 0) {
+      if (m_oi.getDriveJoyYR() >= 0) {
         desiredCA = desired;
       } else {
         desiredCA = desired + 180;
       }
 
     } else {
-      if (m_oi.getDriveJoyY() <= 0) {
+      if (m_oi.getDriveJoyYR() <= 0) {
         desiredCA = desired + 180;
       } else {
         desiredCA = desired + 360;
       }
     }
 
+    //try removing this section
     int negCorrector = m_gyro.getYaw() < 0 ? 1 : 0;
     double gyroCA = m_gyro.getYaw() % 360 + negCorrector * 360;
 
@@ -116,18 +141,37 @@ public class Robot extends TimedRobot {
       desiredCA += 360 * direction;
     }
 
+   
     double error = desiredCA - gyroCA;
-    double kP = 0.004; // .038;
+    //double kP;  // = 0.004; // .038;
+    //double kI; // = 0.25;
     double deriv = (error - this.previous_error) / .02;
-    double kD = .002;
+    //double kD; // = .002;
     previous_error = error;
 
-    m_drivebase.arcadeDrive(m_oi.getControlJoyY(), m_oi.getDriveJoyMag()*(kP * error + kD * deriv + .25 * Math.signum(error)));
+    double kP = 0.004;
+    double kI = 0.25;
+    double kD = 0.002;
+  
+   /* if(error < 90){
+      kP = 0.004;
+      kI = 0.25;
+      kD = 0.002; //needs tuning
+    } else {
+      kP = 0.038;
+      kI = 0.25;
+      kD = 0.002;  //needs tuning
+    }*/
+   
+
+    m_drivebase.arcadeDrive(m_oi.getDriveJoyYL(), m_oi.getMagnitude()*(kP * error + kD * deriv + kI * Math.signum(error)));
+    //m_drivebase.arcadeDrive(m_oi.getDriveJoyYL(), (kP * error + kD * deriv + .25 * Math.signum(error)));
+
 
     SmartDashboard.putNumber("Desired CA", desiredCA);
     SmartDashboard.putNumber("Current CA", gyroCA);
 
-    if (m_oi.DRIVE_JOY.getRawButtonPressed(3)) {
+    if (m_oi.getBackButtonPressed()) {
       m_gyro.reset();
     }
   }
