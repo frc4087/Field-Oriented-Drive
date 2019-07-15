@@ -165,7 +165,6 @@ public class Robot extends TimedRobot {
    
 
     m_drivebase.arcadeDrive(m_oi.getDriveJoyYL(), m_oi.getMagnitude()*(kP * error + kD * deriv + kI * Math.signum(error)));
-    //m_drivebase.arcadeDrive(m_oi.getDriveJoyYL(), (kP * error + kD * deriv + .25 * Math.signum(error)));
 
 
     SmartDashboard.putNumber("Desired CA", desiredCA);
