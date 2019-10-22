@@ -7,82 +7,158 @@
 
 package frc.robot;
 
-import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.XboxController;
+import edu.wpi.first.wpilibj.GenericHID.Hand;
 
-/**
- * This class is the glue that binds the controls on the physical operator
- * interface to the commands and command groups that allow control of the robot.
- */
+
 public class OI {
 
-  // Joystick deadband; default is 0.1
+  double[] previousTrigger = new double[4];
   public static final double JOY_DEADZONE = 0.1;
-
+  boolean quickTurn = false;
+  boolean driveStyle = true;
   // Initialize joysticks
-  public final Joystick DRIVE_JOY = new Joystick(0);
-  // public final XboxController DRIVE_JOY = new
-  // XboxController(RobotMap.DRIVE_JOYSTICK.value);
-  public final Joystick CONTROL_JOY = new Joystick(1);
+  public final XboxController driveJoy = new XboxController(0);
+  public final XboxController opJoy = new XboxController(1);
 
   // get Joystick axis values
-  // public double getDriveJoyXL() {
-  // double raw = DRIVE_JOY.getRawAxis(0);
-  // return Math.abs(raw) < JOY_DEADZONE ? 0.0 : raw;
-  // }
-
-  // public double getDriveJoyYL() {
-  // double raw = DRIVE_JOY.getRawAxis(1);
-  // return Math.abs(raw) < JOY_DEADZONE ? 0.0 : raw;
-  // }
-
-  // public double getDriveJoyXR() {
-  // double raw = DRIVE_JOY.getRawAxis(4);
-  // return Math.abs(raw) < JOY_DEADZONE ? 0.0 : raw;
-  // }
-
-  // public double getDriveJoyYR() {
-  // double raw = DRIVE_JOY.getRawAxis(5);
-  // return Math.abs(raw) < JOY_DEADZONE ? 0.0 : raw;
-  // }
-
   public double getDriveJoyX() {
-    return DRIVE_JOY.getX();
+    return driveJoy.getX();
   }
   
   public double getDriveJoyY() {
-    return -DRIVE_JOY.getY();
+    return driveJoy.getY();
+  }
+  public double getMagnitude() {
+    return Math.sqrt(Math.pow(getDriveJoyX(), 2) + Math.pow(getDriveJoyY(), 2));
   }
 
-  public double getDriveJoyMag() {
-    return DRIVE_JOY.getMagnitude();
-  }
-
-  public double getControlJoyXL() {
-    double raw = CONTROL_JOY.getRawAxis(0);
+  public double getDriveJoyXL() {
+    double raw = driveJoy.getRawAxis(0);
     return Math.abs(raw) < JOY_DEADZONE ? 0.0 : raw;
   }
 
-  public double getControlJoyYL() {
-    double raw = CONTROL_JOY.getRawAxis(1);
+  public double getDriveJoyYL() {
+    double raw = driveJoy.getRawAxis(1);
+    return Math.abs(raw) < JOY_DEADZONE ? 0.0 : -raw;
+  }
+
+  public boolean isQuickTurn() {
+    if (getDriveJoyBRPressed()) {
+      quickTurn = !quickTurn;
+    }
+    return quickTurn;
+  }
+
+  /*public boolean driveStyle(){
+    if(driveJoy.getAButtonPressed()){
+      driveStyle = !driveStyle;
+    }
+    return driveStyle;
+  }*/
+
+  public double getDriveJoyXR() {
+    double raw = driveJoy.getRawAxis(4);
+    if (isQuickTurn()) {
+      return Math.abs(raw) < JOY_DEADZONE ? 0.0 : raw > 0 ? (raw * raw) / 2 : (-raw * raw) / 2;
+    } else {
+      return Math.abs(raw) < JOY_DEADZONE ? 0.0 : raw;
+    }
+  }
+
+  public double getDriveJoyYR() {
+    double raw = driveJoy.getRawAxis(5);
+    return Math.abs(raw) < JOY_DEADZONE ? 0.0 : -raw;
+  }
+
+  public double getOpJoyXL() {
+    double raw = opJoy.getRawAxis(0);
     return Math.abs(raw) < JOY_DEADZONE ? 0.0 : raw;
   }
 
-  public double getControlJoyXR() {
-    double raw = CONTROL_JOY.getRawAxis(4);
+  public double getOpJoyYL() {
+    double raw = opJoy.getRawAxis(1);
     return Math.abs(raw) < JOY_DEADZONE ? 0.0 : raw;
   }
 
-  public double getControlJoyY() {
-    return -CONTROL_JOY.getY();
+  public double getOpJoyXR() {
+    double raw = opJoy.getRawAxis(4);
+    return Math.abs(raw) < JOY_DEADZONE ? 0.0 : raw;
   }
 
-  public double getControlJoyYR() {
-    double raw = CONTROL_JOY.getRawAxis(5);
+  public double getOpJoyYR() {
+    double raw = opJoy.getRawAxis(5);
     return Math.abs(raw) < JOY_DEADZONE ? 0.0 : raw;
+  }
+
+  public boolean getOpJoyBLPressed() {
+    return opJoy.getBumperPressed(Hand.kLeft);
+  }
+
+  public boolean getOpJoyBRPressed() {
+    return opJoy.getBumperPressed(Hand.kRight);
+  }
+
+  public boolean getDriveJoyBLPressed() {
+    return driveJoy.getBumperPressed(Hand.kLeft);
+  }
+
+  public boolean getDriveJoyBRPressed() {
+    return driveJoy.getBumperPressed(Hand.kRight);
+  }
+
+  /*public boolean getDriveJoyStartButtonPressed(){
+    return driveJoy.getStartButtonPressed();
+  }*/
+
+  boolean getDriveJoyLTPressed() {
+    if (Math.abs(driveJoy.getTriggerAxis(Hand.kLeft)) > .1 && previousTrigger[0] == 0) {
+      previousTrigger[0] = driveJoy.getTriggerAxis(Hand.kLeft);
+      return true;
+    }
+    previousTrigger[0] = driveJoy.getTriggerAxis(Hand.kLeft);
+    return false;
+  }
+
+  boolean getDriveJoyRTPressed() {
+    if (Math.abs(driveJoy.getTriggerAxis(Hand.kRight)) > .1 && previousTrigger[1] == 0) {
+      previousTrigger[1] = driveJoy.getTriggerAxis(Hand.kRight);
+      return true;
+    }
+    previousTrigger[1] = driveJoy.getTriggerAxis(Hand.kRight);
+    return false;
+  }
+
+  boolean getOpJoyLTPressed() {
+    if (Math.abs(opJoy.getTriggerAxis(Hand.kLeft)) > .1 && previousTrigger[2] == 0) {
+      previousTrigger[2] = opJoy.getTriggerAxis(Hand.kLeft);
+      return true;
+    }
+    previousTrigger[2] = opJoy.getTriggerAxis(Hand.kLeft);
+    return false;
+  }
+
+  boolean getOpJoyRTPressed() {
+    if (Math.abs(opJoy.getTriggerAxis(Hand.kRight)) > .1 && previousTrigger[3] == 0) {
+      previousTrigger[3] = opJoy.getTriggerAxis(Hand.kRight);
+      return true;
+    }
+    previousTrigger[3] = opJoy.getTriggerAxis(Hand.kRight);
+    return false;
+
+    /*Get Joystick values for foDrive
+    public double getDriveJoyX() {
+      return DRIVE_JOY.getX();
+    }
+    
+    public double getDriveJoyY() {
+      return -DRIVE_JOY.getY();
+    }
+    public double getDriveJoyMag() {
+      return DRIVE_JOY.getMagnitude();
+    }*/
   }
 
   public OI() {
-
   }
 }
